@@ -2,6 +2,7 @@ from Crypto.PublicKey import RSA
 from Crypto import Random
 from Crypto.Cipher import AES
 import struct
+import random
 
 class sockEncrypt:
   def __init__(self, sock):
@@ -19,12 +20,26 @@ class sockEncrypt:
       return self.__sock.recv(n)
   def enable_crypt(self, secret):
     self.crypt = Encryption(secret)
+  def close(self):
+    self.__sock.close()
+    
+def genString(length):
+  var = ''
+  for x in range(length):
+    var += randomLetter()
+  return var
+
+abc = 'abcdefghijklmnopqrstuvwxyz1234567890'
+def randomLetter():
+  return abc[random.randint(0,35)]
 
 def decode_public_key(bytes):
   return RSA.importKey(bytes)
 
 def encode_public_key(key):
-  return key.publickey().exportKey(format="DER")
+  var = key.publickey().exportKey(format="DER")
+  print(var)
+  return var
 
 def gen_key_pair():
   return RSA.generate(1024)

@@ -3,13 +3,12 @@ import socket
 import struct
 from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double, 
 MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray, 
-MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, 
+MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, genString, 
 MC_inventoryarray, MC_ubytearray, sockEncrypt, decode_public_key, encode_public_key, 
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
 import time
 from parsing import packetsList
 from Crypto import Random
-import string
 
 class Serve_Thread(threading.Thread):
   def __init__(self, csock, toConnect):
@@ -17,7 +16,7 @@ class Serve_Thread(threading.Thread):
     lolsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     lolsock.connect((toConnect, 25565))
     self.ssock = sockEncrypt(lolsock)
-    self.sId = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
+    self.sId = genString(10)
     self.sRSA = gen_key_pair()
     self.ccheck = Random.get_random_bytes(4)
     self.s_shared_secret = generate_secret()
@@ -29,9 +28,9 @@ class Serve_Thread(threading.Thread):
       pub = MC_bytearray.read(self.ssock)
       print(pub)
       self.cRSA = decode_public_key(pub)
-      byte = encode_public_key(self.sRSA)
       self.scheck = MC_bytearray.read(self.ssock)
       # relay
+      byte = encode_public_key(self.sRSA)
       MC_ubyte.write(self.csock, 0xfd)
       MC_string.write(self.csock, self.sId)
       MC_bytearray.write(self.csock, byte)
@@ -65,7 +64,7 @@ class Serve_Thread(threading.Thread):
       # relay
       MC_ubyte.write(self.ssock, 0xfc)
       MC_bytearray.write(self.ssock, encrypt_secret(self.s_shared_secret, self.sRSA))
-      MC_bytearray.write(self.ssock, )
+      MC_bytearray.write(self.ssock, self.sRSA.encrypt(ccheck))
     elif byte == 0x02:
       MC_ubyte.write(self.ssock, 0x02)
       MC_byte.write(self.ssock, MC_byte.read(self.csock))
@@ -88,7 +87,6 @@ class Serve_Thread(threading.Thread):
     
   def run(self):
     while True:
-      time.sleep(0.1)
       data = self.csock.recv(1)
       if not data: break
       data = struct.unpack('>B', data)[0]
@@ -101,3 +99,5 @@ class Serve_Thread(threading.Thread):
       data = struct.unpack('>B', data)[0]
       print("Server Packet ID: " + str(data))
       self.parse_server(data)
+    self.csock.close()
+    self.ssock.close()
