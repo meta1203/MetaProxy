@@ -9,6 +9,7 @@ gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
 import time
 from parsing import packetsList
 from Crypto import Random
+import string
 
 class Serve_Thread(threading.Thread):
   def __init__(self, csock, toConnect):
@@ -16,7 +17,7 @@ class Serve_Thread(threading.Thread):
     lolsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     lolsock.connect((toConnect, 25565))
     self.ssock = sockEncrypt(lolsock)
-    self.sId = "".join("%02x" % ord(c) for c in Random.get_random_bytes(10))
+    self.sId = ''.join(random.choice(string.ascii_uppercase + string.digits) for x in range(N))
     self.sRSA = gen_key_pair()
     self.ccheck = Random.get_random_bytes(4)
     self.s_shared_secret = generate_secret()
