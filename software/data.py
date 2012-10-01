@@ -162,6 +162,7 @@ def readByteArray(sock):
   var = ""
   for x in range(length):
     var += sock.recv(1)
+  print(len(var))
   return var
 
 def readUnsignedByteArray(sock):

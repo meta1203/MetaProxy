@@ -6,7 +6,7 @@ MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray,
 MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, 
 MC_inventoryarray, MC_ubytearray, sockEncrypt, decode_public_key, encode_public_key, 
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
-
+import time
 from parsing import packetsList
 from Crypto import Random
 
@@ -20,7 +20,6 @@ class Serve_Thread(threading.Thread):
     self.sRSA = gen_key_pair()
     self.ccheck = Random.get_random_bytes(4)
     self.s_shared_secret = generate_secret()
-    print("Bytes: " + ccheck)
     threading.Thread.__init__(self)
 
   def parse_server(self, byte):
@@ -32,7 +31,7 @@ class Serve_Thread(threading.Thread):
       byte = encode_public_key(self.sRSA)
       self.scheck = MC_bytearray.read(self.ssock)
       # relay
-      MC_ubyte.write(self.csock, int(0xfd))
+      MC_ubyte.write(self.csock, 0xfd)
       MC_string.write(self.csock, self.sId)
       MC_bytearray.write(self.csock, byte)
       MC_bytearray.write(self.csock, self.ccheck)
@@ -77,7 +76,7 @@ class Serve_Thread(threading.Thread):
       MC_ubyte.write(self.ssock, int(byte))
       for x in packetsList[byte]:
         x.write(self.ssock, x.read(self.csock))
-      print("Wrote packet: " + str(byte) + " C -> S")
+      # print("Wrote packet: " + str(byte) + " C -> S")
     
   def reconnect(server, port):
     print("Connecting to: " + server)
@@ -88,10 +87,16 @@ class Serve_Thread(threading.Thread):
     
   def run(self):
     while True:
+      time.sleep(0.1)
       data = self.csock.recv(1)
       if not data: break
-      self.parse_client(struct.unpack('>B', data))
-      data = self.csock.recv(1)
+      data = struct.unpack('>B', data)[0]
+      print("Client Packet ID: " + str(data))
+      self.parse_client(data)
+      data = self.ssock.recv(1)
       if not data:
-        MC_ubyte()
-      self.parse_server(struct.unpack('>B', data))
+        MC_ubyte.write(self.csock, 0xff)
+        MC_string.write(self.csock, "Lost connection to server...")
+      data = struct.unpack('>B', data)[0]
+      print("Server Packet ID: " + str(data))
+      self.parse_server(data)
