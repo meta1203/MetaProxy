@@ -52,7 +52,7 @@ def _pkcs1_pad(bytes):
             padding += byte
     return '\x00\x02%s\x00%s' % (padding, bytes)
 
-class Encyption:
+class Encryption:
   def __init__(self, sharedSecret):
     self.cypher = AES.new(sharedSecret, AES.MODE_CFB, sharedSecret)
 

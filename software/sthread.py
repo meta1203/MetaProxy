@@ -1,9 +1,9 @@
 import threading
 import socket
-
+import struct
 from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double, 
 MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray, 
-MC_short, MC_ushort, MC_dataarray, MC_tribytearray, 
+MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, 
 MC_inventoryarray, MC_ubytearray, sockEncrypt, decode_public_key, encode_public_key, 
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
 
@@ -20,6 +20,7 @@ class Serve_Thread(threading.Thread):
     self.sRSA = gen_key_pair()
     self.ccheck = Random.get_random_bytes(4)
     self.s_shared_secret = generate_secret()
+    print("Bytes: " + ccheck)
     threading.Thread.__init__(self)
 
   def parse_server(self, byte):
@@ -28,12 +29,12 @@ class Serve_Thread(threading.Thread):
       pub = MC_bytearray.read(self.ssock)
       print(pub)
       self.cRSA = decode_public_key(pub)
-      bytes = encode_public_key(self.sRSA)
+      byte = encode_public_key(self.sRSA)
       self.scheck = MC_bytearray.read(self.ssock)
       # relay
       MC_ubyte.write(self.csock, int(0xfd))
       MC_string.write(self.csock, self.sId)
-      MC_bytearray.write(self.csock, bytes)
+      MC_bytearray.write(self.csock, byte)
       MC_bytearray.write(self.csock, self.ccheck)
     elif byte == 0xfc:
       MC_short.read(self.ssock)
@@ -55,17 +56,16 @@ class Serve_Thread(threading.Thread):
     
   def parse_client(self, byte):
     if byte == 0xfc:
-      self.c_shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.cRSA)
+      self.c_shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.sRSA)
       MC_bytearray.read(self.csock)
       MC_ubyte.write(self.csock,0xfc)
       MC_short.write(self.csock,0)
       MC_short.write(self.csock,0)
       self.csock.enable_crypt(self.c_shared_secret)
-      
       # relay
       MC_ubyte.write(self.ssock, 0xfc)
       MC_bytearray.write(self.ssock, encrypt_secret(self.s_shared_secret, self.sRSA))
-      MC_bytearray.write(self.ssock, self.sRSA.encrypt(self.scheck))
+      MC_bytearray.write(self.ssock, )
     elif byte == 0x02:
       MC_ubyte.write(self.ssock, 0x02)
       MC_byte.write(self.ssock, MC_byte.read(self.csock))
@@ -88,5 +88,10 @@ class Serve_Thread(threading.Thread):
     
   def run(self):
     while True:
-      self.parse_client(MC_ubyte.read(self.csock))
-      self.parse_server(MC_ubyte.read(self.ssock))
+      data = self.csock.recv(1)
+      if not data: break
+      self.parse_client(struct.unpack('>B', data))
+      data = self.csock.recv(1)
+      if not data:
+        MC_ubyte()
+      self.parse_server(struct.unpack('>B', data))
