@@ -34,21 +34,21 @@ def randomLetter():
   return abc[random.randint(0,35)]
 
 def decode_public_key(bytes):
+  print(bytes)
   return RSA.importKey(bytes)
 
 def encode_public_key(key):
   var = key.publickey().exportKey(format="DER")
-  print(var)
   return var
 
 def gen_key_pair():
   return RSA.generate(1024)
 
 def generate_secret():
-  Random.get_random_bytes(16)
+  return Random.get_random_bytes(16)
 
 def encrypt_secret(secret, pubKey):
-  return pubKey.encrypt(_pkcs1_pad(secret))
+  return pubKey.encrypt(_pkcs1_pad(secret), 'Butt')[0]
 
 def decrypt_secret(en_Secret, privKey):
   return _pkcs1_unpad(privKey.decrypt(en_Secret))
@@ -173,12 +173,7 @@ def readIntArray(sock):
     
 def readByteArray(sock):
   length = struct.unpack('>h', sock.recv(2))[0]
-  print('Byte array length is: ' + str(length))
-  var = ""
-  for x in range(length):
-    var += sock.recv(1)
-  print(len(var))
-  return var
+  return sock.recv(length)
 
 def readUnsignedByteArray(sock):
   length = struct.unpack('B', sock.recv(4))[0]
@@ -282,7 +277,8 @@ def writeIntArray(sock, data):
     sock.send(struct.pack('>i', x))
 
 def writeByteArray(sock, data):
-  sock.send(struct.pack('>i', len(data)))
+  print(len(data))
+  sock.send(struct.pack('>h', len(data)))
   sock.send(data)
 	  
 def writeUnsignedByteArray(sock, data):
