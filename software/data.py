@@ -15,7 +15,7 @@ class sockEncrypt:
       self.__sock.send(data)
   def recv(self, n):
     if self.crypt:
-      return self.__sock.recv(self.crypt.encrypt(n))
+      return self.crypt.decrypt(self.__sock.recv(n))
     else:
       return self.__sock.recv(n)
   def enable_crypt(self, secret):
@@ -34,7 +34,6 @@ def randomLetter():
   return abc[random.randint(0,35)]
 
 def decode_public_key(bytes):
-  print(bytes)
   return RSA.importKey(bytes)
 
 def encode_public_key(key):
@@ -65,7 +64,9 @@ def _pkcs1_pad(bytes):
         byte = Random.get_random_bytes(1)
         if byte != '\x00':
             padding += byte
-    return '\x00\x02%s\x00%s' % (padding, bytes)
+    var = '\x00\x02%s\x00%s' % (padding, bytes)
+    print(var)
+    return var
 
 class Encryption:
   def __init__(self, sharedSecret):
@@ -277,7 +278,6 @@ def writeIntArray(sock, data):
     sock.send(struct.pack('>i', x))
 
 def writeByteArray(sock, data):
-  print(len(data))
   sock.send(struct.pack('>h', len(data)))
   sock.send(data)
 	  
