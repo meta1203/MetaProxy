@@ -1,3 +1,3 @@
 @echo off
-python MetaProxy.py 25567 localhost
+python MetaProxy.py 25566 localhost
 pause

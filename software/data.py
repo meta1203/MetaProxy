@@ -1,6 +1,6 @@
 from Crypto.PublicKey import RSA
 from Crypto import Random
-from Crypto.Cipher import AES
+from Crypto.Cipher import AES, PKCS1_v1_5
 import struct
 import random
 
@@ -10,14 +10,15 @@ class sockEncrypt:
     self.crypt = None
   def send(self, data):
     if self.crypt:
-      self.__sock.send(self.crypt.encrypt(data))
+      return self.__sock.send(self.crypt.encrypt(data))
     else:
-      self.__sock.send(data)
+      return self.__sock.send(data)
   def recv(self, n):
+    data = self.__sock.recv(n)
     if self.crypt:
-      return self.crypt.decrypt(self.__sock.recv(n))
+      return self.crypt.decrypt(data)
     else:
-      return self.__sock.recv(n)
+      return data
   def enable_crypt(self, secret):
     self.crypt = Encryption(secret)
   def close(self):
@@ -29,9 +30,9 @@ def genString(length):
     var += randomLetter()
   return var
 
-abc = 'abcdefghijklmnopqrstuvwxyz1234567890'
+abc = 'abcdef1234567890'
 def randomLetter():
-  return abc[random.randint(0,35)]
+  return abc[random.randint(0,15)]
 
 def decode_public_key(bytes):
   return RSA.importKey(bytes)
@@ -44,29 +45,23 @@ def gen_key_pair():
   return RSA.generate(1024)
 
 def generate_secret():
-  return Random.get_random_bytes(16)
+  found = False
+  while not found:
+    data = Random.get_random_bytes(16)
+    if '\x00' in data:
+      continue
+    else:
+      found = True
+  return data
 
 def encrypt_secret(secret, pubKey):
-  return pubKey.encrypt(_pkcs1_pad(secret), 'Butt')[0]
+  cipher = PKCS1_v1_5.new(pubKey)
+  return cipher.encrypt(secret)
 
 def decrypt_secret(en_Secret, privKey):
-  return _pkcs1_unpad(privKey.decrypt(en_Secret))
-
-def _pkcs1_unpad(bytes):
-    pos = bytes.find('\x00')
-    if pos > 0:
-        return bytes[pos+1:]
-
-def _pkcs1_pad(bytes):
-    assert len(bytes) < 117
-    padding = ""
-    while len(padding) < 125-len(bytes):
-        byte = Random.get_random_bytes(1)
-        if byte != '\x00':
-            padding += byte
-    var = '\x00\x02%s\x00%s' % (padding, bytes)
-    print(var)
-    return var
+  cipher = PKCS1_v1_5.new(privKey)
+  var = cipher.decrypt(en_Secret, '...')
+  return var
 
 class Encryption:
   def __init__(self, sharedSecret):
@@ -174,6 +169,7 @@ def readIntArray(sock):
     
 def readByteArray(sock):
   length = struct.unpack('>h', sock.recv(2))[0]
+  print(length)
   return sock.recv(length)
 
 def readUnsignedByteArray(sock):
@@ -279,13 +275,14 @@ def writeIntArray(sock, data):
 
 def writeByteArray(sock, data):
   sock.send(struct.pack('>h', len(data)))
-  sock.send(data)
-	  
+  print('Byte array length:')
+  print(sock.send(data))
+
 def writeUnsignedByteArray(sock, data):
   sock.send(struct.pack('>i', len(data)))
   for x in data:
     sock.send(struct.pack('>b', x))
-      
+
 def writeTriByteArray(sock, data):
   sock.send(struct.pack('>i', len(data/3)))
   for x in data:

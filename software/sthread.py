@@ -35,14 +35,17 @@ class Serve_Thread(threading.Thread):
       MC_bytearray.write(self.csock, byte)
       MC_bytearray.write(self.csock, self.ccheck)
     elif byte == 0xfc:
-      MC_bytearray.read(self.ssock)
-      MC_bytearray.read(self.ssock)
+      print('lol')
+      print(MC_short.read(self.ssock))
+      print('retartz')
+      print(MC_short.read(self.ssock))
+      print('wut?')
       MC_ubyte.write(self.csock,0xfc)
       MC_bytearray.write(self.csock,'')
       MC_bytearray.write(self.csock,'')
-      # time.sleep(0.1)
-      self.ssock.enable_crypt(self.s_shared_secret)
       self.csock.enable_crypt(self.c_shared_secret)
+      self.ssock.enable_crypt(self.c_shared_secret)
+      time.sleep(0.1)
     elif byte == 0xff:
       test = MC_string.read(self.ssock)
       if "[Reconnect]" in test:
@@ -63,7 +66,8 @@ class Serve_Thread(threading.Thread):
       print(decrypt_secret(MC_bytearray.read(self.csock), self.sRSA) == self.ccheck)
       # relay
       MC_ubyte.write(self.ssock, 0xfc)
-      MC_bytearray.write(self.ssock, encrypt_secret(self.s_shared_secret, self.cRSA))
+      print('Sending encryption...')
+      MC_bytearray.write(self.ssock, encrypt_secret(self.c_shared_secret, self.cRSA))
       MC_bytearray.write(self.ssock, encrypt_secret(self.scheck, self.cRSA))
     elif byte == 0x02:
       MC_ubyte.write(self.ssock, 0x02)
@@ -88,14 +92,16 @@ class Serve_Thread(threading.Thread):
   def run(self):
     while True:
       data = self.csock.recv(1)
-      if not data: 
-        continue
+      if not data:
+        print('Breaking!')
+        break
       data = struct.unpack('>B', data)[0]
       print("Client Packet ID: " + str(data))
       self.parse_client(data)
       data1 = self.ssock.recv(1)
       if not data1:
-        continue
+        print('Breaking!')
+        break
       data1 = struct.unpack('>B', data1)[0]
       print("Server Packet ID: " + str(data1))
       self.parse_server(data1)
