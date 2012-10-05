@@ -4,22 +4,23 @@ import struct
 from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double, 
 MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray, 
 MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, genString, 
-MC_inventoryarray, MC_ubytearray, sockEncrypt, decode_public_key, encode_public_key, 
+MC_inventoryarray, MC_ubytearray, decode_public_key, encode_public_key, 
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
+from socket_spec import Stream
 import time
 from parsing import packetsList
 from Crypto import Random
 
 class Serve_Thread(threading.Thread):
   def __init__(self, csock, toConnect):
-    self.csock = sockEncrypt(csock)
+    self.csock = Stream(csock)
     lolsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     lolsock.connect((toConnect, 25565))
-    self.ssock = sockEncrypt(lolsock)
-    self.sId = genString(10)
+    self.ssock = Stream(lolsock)
+    self.sId = "-" # genString(10)
     self.sRSA = gen_key_pair()
     self.ccheck = Random.get_random_bytes(4)
-    self.s_shared_secret = generate_secret()
+    self.connected = False
     threading.Thread.__init__(self)
 
   def parse_server(self, byte):
@@ -43,8 +44,9 @@ class Serve_Thread(threading.Thread):
       MC_ubyte.write(self.csock,0xfc)
       MC_bytearray.write(self.csock,'')
       MC_bytearray.write(self.csock,'')
-      self.csock.enable_crypt(self.c_shared_secret)
-      self.ssock.enable_crypt(self.c_shared_secret)
+      self.cypher = Encryption(self.shared_secret)
+      self.csock.enable_crypt(self.cypher)
+      self.ssock.enable_crypt(self.cypher)
       time.sleep(0.1)
     elif byte == 0xff:
       test = MC_string.read(self.ssock)
@@ -62,12 +64,12 @@ class Serve_Thread(threading.Thread):
     
   def parse_client(self, byte):
     if byte == 0xfc:
-      self.c_shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.sRSA)
+      self.shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.sRSA)
       print(decrypt_secret(MC_bytearray.read(self.csock), self.sRSA) == self.ccheck)
       # relay
       MC_ubyte.write(self.ssock, 0xfc)
       print('Sending encryption...')
-      MC_bytearray.write(self.ssock, encrypt_secret(self.c_shared_secret, self.cRSA))
+      MC_bytearray.write(self.ssock, encrypt_secret(self.shared_secret, self.cRSA))
       MC_bytearray.write(self.ssock, encrypt_secret(self.scheck, self.cRSA))
     elif byte == 0x02:
       MC_ubyte.write(self.ssock, 0x02)
@@ -87,23 +89,26 @@ class Serve_Thread(threading.Thread):
     print("on port: " + str(port))
     lolsock = socket.socket(AF_INET, AF_STREAM)
     lolsock.connect((server, port))
-    self.ssock = sockEncrypt(lolsock)
+    self.ssock = Stream(lolsock)
     
   def run(self):
-    while True:
-      data = self.csock.recv(1)
-      if not data:
-        print('Breaking!')
-        break
-      data = struct.unpack('>B', data)[0]
-      print("Client Packet ID: " + str(data))
-      self.parse_client(data)
-      data1 = self.ssock.recv(1)
-      if not data1:
-        print('Breaking!')
-        break
-      data1 = struct.unpack('>B', data1)[0]
-      print("Server Packet ID: " + str(data1))
-      self.parse_server(data1)
+    while (not ssock.closed) and (not csock.closed):
+      if csock.read(4096):
+        data = self.csock.recv(1)
+        if not data:
+          print('Breaking!')
+          break
+        data = struct.unpack('>B', data)[0]
+        print("Client Packet ID: " + str(data))
+        self.parse_client(data)
+      # Other side...
+      if ssock.read(4096):
+        data = self.ssock.recv(1)
+        if not data:
+          print('Breaking!')
+          break
+        data = struct.unpack('>B', data)[0]
+        print("Server Packet ID: " + str(data))
+        self.parse_server(data)
     self.csock.close()
     self.ssock.close()

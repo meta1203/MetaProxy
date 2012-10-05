@@ -1,6 +1,6 @@
 from Crypto.PublicKey import RSA
 from Crypto import Random
-from Crypto.Cipher import AES, PKCS1_v1_5
+from Crypto.Cipher import PKCS1_v1_5
 import struct
 import random
 
@@ -9,18 +9,19 @@ class sockEncrypt:
     self.__sock = sock
     self.crypt = None
   def send(self, data):
-    if self.crypt:
+    if self.crypt is not None:
       return self.__sock.send(self.crypt.encrypt(data))
     else:
       return self.__sock.send(data)
   def recv(self, n):
     data = self.__sock.recv(n)
-    if self.crypt:
+    if self.crypt is not None:
       return self.crypt.decrypt(data)
     else:
       return data
-  def enable_crypt(self, secret):
-    self.crypt = Encryption(secret)
+  def enable_crypt(self, cypher):
+    self.crypt = cypher
+    print(self.crypt)
   def close(self):
     self.__sock.close()
     
@@ -65,7 +66,7 @@ def decrypt_secret(en_Secret, privKey):
 
 class Encryption:
   def __init__(self, sharedSecret):
-    self.cypher = AES.new(sharedSecret, AES.MODE_CFB, sharedSecret)
+    self.cypher = ""
 
   def encrypt(self, bytes):
     return self.cypher.encrypt(bytes)
