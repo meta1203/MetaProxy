@@ -4,6 +4,9 @@ from Crypto.Cipher import PKCS1_v1_5
 import struct
 import random
 
+def byte_pair(byte):
+  return (byte, struct.unpack('>B', byte)[0])
+
 class sockEncrypt:
   def __init__(self, sock):
     self.__sock = sock

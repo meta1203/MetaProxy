@@ -41,10 +41,8 @@ class Stream:
       return
     if self._crypt is not None:
       bytes = self._crypt.encrypt(bytes)
-    writen = self._sock_pair.sendall(bytes)
-    if writen is not None:
-      self.wrote += writen
-    return writen
+    self._sock_pair.sendall(bytes)
+    self.wrote += len(bytes)
     
   def close(self):
     if not self.closed:
@@ -58,11 +56,15 @@ class Stream:
     
   def dump(self):
     ret = self._buffer
+    print(len(ret))
     self._buffer = ""
     return ret
     
   def next(self):
     return self._buffer[0]
+    
+  def read_ahead(self, n):
+    return self._buffer[n]
     
   def stats(self):
     return (self.read, self.wrote, len(self._buffer))

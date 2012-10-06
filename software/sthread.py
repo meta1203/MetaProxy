@@ -2,17 +2,19 @@ import threading
 import socket
 import struct
 from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double, 
-MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray, 
+MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray,  byte_pair, 
 MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, genString, 
 MC_inventoryarray, MC_ubytearray, decode_public_key, encode_public_key, 
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
 from socket_spec import Stream
 import time
+import logging
 from parsing import packetsList
 from Crypto import Random
 
 class Serve_Thread(threading.Thread):
   def __init__(self, csock, toConnect):
+    logging.basicConfig(filename='proxy.log',level=logging.DEBUG)
     self.csock = Stream(csock)
     lolsock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     lolsock.connect((toConnect, 25565))
@@ -53,15 +55,11 @@ class Serve_Thread(threading.Thread):
         MC_ubyte.write(self.csock, byte)
         MC_string.write(self.csock, test)
     else:
-      try:
-        MC_ubyte.write(self.csock, byte)
-        for x in packetsList[byte]:
-          x.write(self.csock, x.read(self.ssock))
-        print("Wrote packet: " + str(byte) + " S -> C")
-      except:
-        dumped = self.ssock.dump()
-        print(dumped)
-        self.ssock.close()
+      logging.error(self.ssock.stats())
+      dumped = self.ssock.dump()
+      for x in dumped:
+        logging.info(byte_pair(x))
+      self.ssock.close()
     
   def parse_client(self, byte):
     if byte == 0xfc:
@@ -80,6 +78,9 @@ class Serve_Thread(threading.Thread):
       MC_string.write(self.ssock, self.username)
       MC_string.write(self.ssock, MC_string.read(self.csock))
       MC_int.write(self.ssock, MC_int.read(self.csock))
+    elif byte == 0xcd:
+      MC_ubyte.write(self.ssock, 0xcd)
+      self.ssock.send(self.csock.recv(1))
     else:
       MC_ubyte.write(self.ssock, int(byte))
       for x in packetsList[byte]:
