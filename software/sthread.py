@@ -36,17 +36,13 @@ class Serve_Thread(threading.Thread):
       MC_bytearray.write(self.csock, byte)
       MC_bytearray.write(self.csock, self.ccheck)
     elif byte == 0xfc:
-      print('lol')
       print(MC_short.read(self.ssock))
-      print('retartz')
       print(MC_short.read(self.ssock))
-      print('wut?')
       MC_ubyte.write(self.csock,0xfc)
-      MC_bytearray.write(self.csock,'')
-      MC_bytearray.write(self.csock,'')
-      self.cypher = Encryption(self.shared_secret)
-      self.csock.enable_crypt(self.cypher)
-      self.ssock.enable_crypt(self.cypher)
+      MC_short.write(self.csock,0)
+      MC_short.write(self.csock,0)
+      self.csock.start_encryption(self.shared_secret)
+      self.ssock.start_encryption(self.shared_secret)
       time.sleep(0.1)
     elif byte == 0xff:
       test = MC_string.read(self.ssock)
@@ -57,10 +53,15 @@ class Serve_Thread(threading.Thread):
         MC_ubyte.write(self.csock, byte)
         MC_string.write(self.csock, test)
     else:
-      MC_ubyte.write(self.csock, byte)
-      for x in packetsList[byte]:
-        x.write(self.csock, x.read(self.ssock))
-      print("Wrote packet: " + str(byte) + " S -> C")
+      try:
+        MC_ubyte.write(self.csock, byte)
+        for x in packetsList[byte]:
+          x.write(self.csock, x.read(self.ssock))
+        print("Wrote packet: " + str(byte) + " S -> C")
+      except:
+        dumped = self.ssock.dump()
+        print(dumped)
+        self.ssock.close()
     
   def parse_client(self, byte):
     if byte == 0xfc:
@@ -75,6 +76,7 @@ class Serve_Thread(threading.Thread):
       MC_ubyte.write(self.ssock, 0x02)
       MC_byte.write(self.ssock, MC_byte.read(self.csock))
       self.username = MC_string.read(self.csock)
+      print(self.username)
       MC_string.write(self.ssock, self.username)
       MC_string.write(self.ssock, MC_string.read(self.csock))
       MC_int.write(self.ssock, MC_int.read(self.csock))
@@ -92,8 +94,9 @@ class Serve_Thread(threading.Thread):
     self.ssock = Stream(lolsock)
     
   def run(self):
-    while (not ssock.closed) and (not csock.closed):
-      if csock.read(4096):
+    while (not self.ssock.closed) and (not self.csock.closed):
+      if self.csock.read_into(4096):
+        # print(self.csock.stats())
         data = self.csock.recv(1)
         if not data:
           print('Breaking!')
@@ -102,7 +105,8 @@ class Serve_Thread(threading.Thread):
         print("Client Packet ID: " + str(data))
         self.parse_client(data)
       # Other side...
-      if ssock.read(4096):
+      if self.ssock.read_into(4096):
+        # print(self.ssock.stats())
         data = self.ssock.recv(1)
         if not data:
           print('Breaking!')

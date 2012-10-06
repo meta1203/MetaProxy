@@ -1,9 +1,11 @@
-from Crypto.Cypher import AES
+from Crypto.Cipher import AES
 
 class Stream:
   def __init__(self, sock_pair):
     self._sock_pair = sock_pair
     self._sock_pair.setblocking(0)
+    self.read = 0
+    self.wrote = 0
     self._crypt = None
     self._buffer = ""
     self.closed = False
@@ -24,13 +26,14 @@ class Stream:
     if n < len(self._buffer):
       ret = self._buffer[0:n]
       self._buffer = self._buffer[n:]
+      self.read += n
       return ret
     if n > len(self._buffer):
-      self.read_into(n - len(self._buffer))
-      return recv(n)
+      return
     else:
       ret = self._buffer
       self._buffer = ""
+      self.read += n
       return ret
     
   def send(self, bytes):
@@ -38,7 +41,10 @@ class Stream:
       return
     if self._crypt is not None:
       bytes = self._crypt.encrypt(bytes)
-    return self._sock_pair.sendall(bytes)
+    writen = self._sock_pair.sendall(bytes)
+    if writen is not None:
+      self.wrote += writen
+    return writen
     
   def close(self):
     if not self.closed:
@@ -48,3 +54,15 @@ class Stream:
   
   def start_encryption(self, secret):
     self._crypt = AES.new(secret, AES.MODE_CFB, secret)
+    self._buffer = self._crypt.decrypt(self._buffer)
+    
+  def dump(self):
+    ret = self._buffer
+    self._buffer = ""
+    return ret
+    
+  def next(self):
+    return self._buffer[0]
+    
+  def stats(self):
+    return (self.read, self.wrote, len(self._buffer))
