@@ -55,11 +55,16 @@ class Serve_Thread(threading.Thread):
         MC_ubyte.write(self.csock, byte)
         MC_string.write(self.csock, test)
     else:
-      logging.error(self.ssock.stats())
-      dumped = self.ssock.dump()
-      for x in dumped:
-        logging.info(byte_pair(x))
-      self.ssock.close()
+      if packetsList[byte] is byte:
+        print(byte)
+        dumped = self.ssock.dump()
+        for x in dumped:
+          print((x, struct.unpack('>B', x)))
+        return
+      MC_ubyte.write(self.csock, int(byte))
+      for x in packetsList[byte]:
+        x.write(self.csock, x.read(self.ssock))
+      print("Wrote packet: " + str(byte) + " S -> C")
 
   def parse_client(self, byte):
     if byte == 0xfc:
