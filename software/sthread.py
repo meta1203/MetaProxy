@@ -1,10 +1,10 @@
 import threading
 import socket
 import struct
-from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double, 
-MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray,  byte_pair, 
-MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, genString, 
-MC_inventoryarray, MC_ubytearray, decode_public_key, encode_public_key, 
+from data import (MC_int, MC_byte, MC_long, MC_ubyte, MC_string, MC_float, MC_double,
+MC_metadata, MC_inventory, MC_objectdata, MC_intarray, MC_bytearray,  byte_pair,
+MC_short, MC_ushort, MC_dataarray, MC_tribytearray, Encryption, genString,
+MC_inventoryarray, MC_ubytearray, decode_public_key, encode_public_key,
 gen_key_pair, generate_secret, decrypt_secret, encrypt_secret)
 from socket_spec import Stream
 import time
@@ -50,7 +50,7 @@ class Serve_Thread(threading.Thread):
       test = MC_string.read(self.ssock)
       if "[Reconnect]" in test:
         toConnect = test[11:].split(':')
-        reconnect(toConnect[0], int(toConnect[1]))
+        self.reconnect(toConnect[0], int(toConnect[1]))
       else:
         MC_ubyte.write(self.csock, byte)
         MC_string.write(self.csock, test)
@@ -60,7 +60,7 @@ class Serve_Thread(threading.Thread):
       for x in dumped:
         logging.info(byte_pair(x))
       self.ssock.close()
-    
+
   def parse_client(self, byte):
     if byte == 0xfc:
       self.shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.sRSA)
@@ -86,14 +86,14 @@ class Serve_Thread(threading.Thread):
       for x in packetsList[byte]:
         x.write(self.ssock, x.read(self.csock))
       print("Wrote packet: " + str(byte) + " C -> S")
-    
-  def reconnect(server, port):
+
+  def reconnect(self, server, port):
     print("Connecting to: " + server)
     print("on port: " + str(port))
     lolsock = socket.socket(AF_INET, AF_STREAM)
     lolsock.connect((server, port))
     self.ssock = Stream(lolsock)
-    
+
   def run(self):
     while (not self.ssock.closed) and (not self.csock.closed):
       if self.csock.read_into(4096):
@@ -105,6 +105,8 @@ class Serve_Thread(threading.Thread):
         data = struct.unpack('>B', data)[0]
         print("Client Packet ID: " + str(data))
         self.parse_client(data)
+        self.flush()
+
       # Other side...
       if self.ssock.read_into(4096):
         # print(self.ssock.stats())
@@ -115,5 +117,9 @@ class Serve_Thread(threading.Thread):
         data = struct.unpack('>B', data)[0]
         print("Server Packet ID: " + str(data))
         self.parse_server(data)
+        self.flush()
     self.csock.close()
     self.ssock.close()
+  def flush(self):
+    self.csock.flush()
+    self.ssock.flush()

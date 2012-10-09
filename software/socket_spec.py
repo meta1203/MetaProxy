@@ -8,8 +8,9 @@ class Stream:
     self.wrote = 0
     self._crypt = None
     self._buffer = ""
+    self._obuffer = ""
     self.closed = False
-  
+
   def read_into(self, n):
     try:
       data = self._sock_pair.recv(n)
@@ -19,7 +20,7 @@ class Stream:
       data = self._crypt.decrypt(data)
     self._buffer += data
     return True
-    
+
   def recv(self, n):
     if self.closed:
       return
@@ -35,36 +36,38 @@ class Stream:
       self._buffer = ""
       self.read += n
       return ret
-    
+
   def send(self, bytes):
-    if self.closed:
-      return
     if self._crypt is not None:
       bytes = self._crypt.encrypt(bytes)
-    self._sock_pair.sendall(bytes)
-    self.wrote += len(bytes)
-    
+    self._obuffer += bytes
+
   def close(self):
     if not self.closed:
       self._sock_pair.close()
       self.closed = True
       self._buffer = ""
-  
+
   def start_encryption(self, secret):
     self._crypt = AES.new(secret, AES.MODE_CFB, secret)
     self._buffer = self._crypt.decrypt(self._buffer)
-    
+
   def dump(self):
     ret = self._buffer
     print(len(ret))
     self._buffer = ""
     return ret
-    
+
   def next(self):
     return self._buffer[0]
-    
+
   def read_ahead(self, n):
     return self._buffer[n]
-    
+
   def stats(self):
     return (self.read, self.wrote, len(self._buffer))
+  def flush(self):
+    if self.closed:
+      return
+    self._sock_pair.send(self._obuffer)
+    self.wrote += len(self._obuffer)
