@@ -27,7 +27,7 @@ class sockEncrypt:
     print(self.crypt)
   def close(self):
     self.__sock.close()
-    
+
 def genString(length):
   var = ''
   for x in range(length):
@@ -143,7 +143,7 @@ def readInventory(sock):
     if var[2] != -1:
       var.append(sock.recv(var[2])[0])
   return var
-    
+
 def readInventoryArray(sock):
   length = struct.unpack('>h', sock.recv(2))[0]
   var = range(length)
@@ -170,7 +170,7 @@ def readIntArray(sock):
   for x in range(length):
     var.append(struct.unpack('>i', sock.recv(4))[0])
   return var
-    
+
 def readByteArray(sock):
   length = struct.unpack('>h', sock.recv(2))[0]
   print(length)
@@ -182,14 +182,14 @@ def readUnsignedByteArray(sock):
   for x in range(length):
     var.append(struct.unpack('>b', sock.recv(1))[0])
   return var
-    
+
 def readTriByteArray(sock):
   length = struct.unpack('i', sock.recv(4))[0] * 3
   var = []
   for x in range(length):
     var.append(struct.unpack('>b', sock.recv(1))[0])
   return var
-    
+
 def readDataArray(sock):
   chunkNum = struct.unpack('>h', sock.recv(2))[0]
   arrayLen = struct.unpack('>i', sock.recv(4))[0]
@@ -212,7 +212,7 @@ def writeByte(sock, data):
 
 def writeShort(sock, data):
   sock.send(struct.pack('>h', data))
-    
+
 def writeUnsignedShort(sock, data):
   sock.send(struct.pack('>H', data))
 
@@ -264,14 +264,14 @@ def writeInventory(sock, data):
   sock.send(struct.pack('>h', size))
   if size > 0:
     sock.send(data[3])
-      
+
 def writeObjectData(sock, data):
   sock.send(struct.pack('>i', data[0]))
   if data[0]:
     sock.send(struct.pack('>h', data[1]))
     sock.send(struct.pack('>h', data[2]))
     sock.send(struct.pack('>h', data[3]))
-      
+
 def writeIntArray(sock, data):
   sock.send(struct.pack('>i', len(data)))
   for x in data:
@@ -280,6 +280,7 @@ def writeIntArray(sock, data):
 def writeByteArray(sock, data):
   sock.send(struct.pack('>h', len(data)))
   print('Byte array length:')
+  print(len(data))
   print(sock.send(data))
 
 def writeUnsignedByteArray(sock, data):

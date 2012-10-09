@@ -33,6 +33,7 @@ class Serve_Thread(threading.Thread):
       self.scheck = MC_bytearray.read(self.ssock)
       # relay
       byte = encode_public_key(self.sRSA)
+      print(byte)
       MC_ubyte.write(self.csock, 0xfd)
       MC_string.write(self.csock, self.sId)
       MC_bytearray.write(self.csock, byte)
