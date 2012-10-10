@@ -26,27 +26,6 @@ class Serve_Thread(threading.Thread):
     threading.Thread.__init__(self)
 
   def parse_server(self, byte):
-    if byte == 0xfd:
-      self.cId = MC_string.read(self.ssock)
-      pub = MC_bytearray.read(self.ssock)
-      self.cRSA = decode_public_key(pub)
-      self.scheck = MC_bytearray.read(self.ssock)
-      # relay
-      byte = encode_public_key(self.sRSA)
-      print(byte)
-      MC_ubyte.write(self.csock, 0xfd)
-      MC_string.write(self.csock, self.sId)
-      MC_bytearray.write(self.csock, byte)
-      MC_bytearray.write(self.csock, self.ccheck)
-    elif byte == 0xfc:
-      print(MC_short.read(self.ssock))
-      print(MC_short.read(self.ssock))
-      MC_ubyte.write(self.csock,0xfc)
-      MC_short.write(self.csock,0)
-      MC_short.write(self.csock,0)
-      self.csock.start_encryption(self.shared_secret)
-      self.ssock.start_encryption(self.shared_secret)
-      time.sleep(0.1)
     elif byte == 0xff:
       test = MC_string.read(self.ssock)
       if "[Reconnect]" in test:
@@ -71,22 +50,29 @@ class Serve_Thread(threading.Thread):
     if byte == 0xfc:
       self.shared_secret = decrypt_secret(MC_bytearray.read(self.csock), self.sRSA)
       print(decrypt_secret(MC_bytearray.read(self.csock), self.sRSA) == self.ccheck)
-      # relay
-      MC_ubyte.write(self.ssock, 0xfc)
-      print('Sending encryption...')
-      MC_bytearray.write(self.ssock, encrypt_secret(self.shared_secret, self.cRSA))
-      MC_bytearray.write(self.ssock, encrypt_secret(self.scheck, self.cRSA))
+	  MC_ubyte.write(self.csock,0xfc)
+      MC_short.write(self.csock,0)
+      MC_short.write(self.csock,0)
+	  self.csock.start_encryption(self.shared_secret)
+	  MC_ubyte.write(self.ssock, 0x02)
+	  MC_byte.write(self.ssock, self.p_version)
+	  MC_string.write(self.ssock, self.username)
+	  MC_string.write(self.ssock, self.connectedfrom)
+	  MC_int.write(self.ssock, self.cportfrom)
+	  time.sleep(0.1)
     elif byte == 0x02:
-      MC_ubyte.write(self.ssock, 0x02)
-      MC_byte.write(self.ssock, MC_byte.read(self.csock))
+	  self.p_version = MC_byte.read(self.csock)
       self.username = MC_string.read(self.csock)
       print(self.username)
-      MC_string.write(self.ssock, self.username)
-      MC_string.write(self.ssock, MC_string.read(self.csock))
-      MC_int.write(self.ssock, MC_int.read(self.csock))
-    elif byte == 0xcd:
-      MC_ubyte.write(self.ssock, 0xcd)
-      self.ssock.send(self.csock.recv(1))
+      self.connectedfrom = MC_string.read(self.csock)
+      self.cportfrom = MC_int.read(self.csock)
+	  # send 0xFD
+	  byte = encode_public_key(self.sRSA)
+      print(byte)
+      MC_ubyte.write(self.csock, 0xfd)
+      MC_string.write(self.csock, self.sId)
+      MC_bytearray.write(self.csock, byte)
+      MC_bytearray.write(self.csock, self.ccheck)
     else:
       MC_ubyte.write(self.ssock, int(byte))
       for x in packetsList[byte]:
